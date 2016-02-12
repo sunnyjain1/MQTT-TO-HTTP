@@ -1,0 +1,18 @@
+{application, 'mqtt_to_http',
+ [{description, "Plugin to convert Mqtt to Http"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {'mqtt_to_http_app', []}},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[
+	  {vmq_plugin_hooks, 
+            [
+			           {mqtt_to_http, auth_on_publish, 6, []},
+			           {mqtt_to_http, auth_on_subscribe, 3, []}
+			]}
+ ]},
+  {modules, []}
+ ]}.
