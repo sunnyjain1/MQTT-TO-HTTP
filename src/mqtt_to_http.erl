@@ -43,9 +43,24 @@ send_req(Payload,[Topic]) ->
 		URL ->
 			error_logger:info_msg("Sending Request"),
 			application:start(inets),
-			Response = httpc:request(post, {URL, [],"application/json",Payload}, [], [{sync, false}]),
-			error_logger:info_msg("Response: ~p ", [Response]),
+			application:start(ssl),
+			make_req(URL,Payload,5),
 			ok
+	end.
+
+make_req(_,_,0) ->
+	ok;
+make_req(URL,Payload,N) ->
+		{ok,Ref} = httpc:request(post, {URL, [],"application/json",Payload}, [], [{sync, false},{stream,self}]),
+	receive
+		{_,{Ref,{error,_}}} -> 
+				error_logger:info_msg("Server Error :P "),
+				T = trunc(math:exp(6-N)),
+				timer:sleep(1000*T),
+				make_req(URL,Payload,N-1);
+		_ ->
+				error_logger:info_msg("Passes"),
+				ok
 	end.
 
 find([],_) -> 
