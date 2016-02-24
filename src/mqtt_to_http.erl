@@ -34,19 +34,32 @@ auth_on_subscribe(UserName, ClientId, [{_Topic, _QoS}|_] = Topics) ->
 %%%%%%%%%%%  Internal Functions  %%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-send_req(Payload,[Topic]) ->
-	Lis = [{"bye","http://www.google.com"},{"new","http://localhost:8000"}],
-	T = erlang:binary_to_list(Topic),
+send_req(Payload,Topic) ->
+	Lis = [{"bye","http://www.google.com"},{"new","http://localhost:8000"},{"mqtt-malaria/mosq123-0/data/1/10","http://localhost:8000"}],
+	T = convert(Topic),
+	error_logger:info_msg("topic: ~p",[T]),
 	case find(Lis,T) of
 		not_exist ->
 			ok;
 		URL ->
 			error_logger:info_msg("Sending Request"),
-			application:start(inets),
-			application:start(ssl),
 			make_req(URL,Payload,5),
 			ok
 	end.
+
+convert([],Acc) ->
+	Acc;
+convert([H|R],Acc) ->
+	case Acc =/= [] of 
+		true ->
+			convert(R,lists:reverse(binary_to_list(H))++"/"++Acc);
+		false ->
+			convert(R,lists:reverse(binary_to_list(H))++Acc)
+	end.
+
+convert(Topic) ->
+	lists:reverse(convert(Topic,[])).
+
 
 make_req(_,_,0) ->
 	ok;
@@ -58,6 +71,17 @@ make_req(URL,Payload,N) ->
 				T = trunc(math:exp(6-N)),
 				timer:sleep(1000*T),
 				make_req(URL,Payload,N-1);
+		{_,{Ref,{{_,Status,_},_,_}}} -> 
+				error_logger:info_msg("status = ~p",[Status]),
+				if 
+					(Status >= 200) and (Status < 300) ->
+						error_logger:info_msg("Passes"),
+						ok;
+					true ->	
+						T = trunc(math:exp(6-N)),
+						timer:sleep(1000*T),
+						make_req(URL,Payload,N-1)
+				end;
 		_ ->
 				error_logger:info_msg("Passes"),
 				ok
