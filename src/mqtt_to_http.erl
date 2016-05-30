@@ -35,7 +35,9 @@ auth_on_subscribe(UserName, ClientId, [{_Topic, _QoS}|_] = Topics) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 send_req(Payload,Topic) ->
-	Lis = [{"bye","http://www.google.com"},{"new","http://localhost:8000"},{"mqtt-malaria/mosq123-0/data/1/10","http://localhost:8000"}],
+	Lis = [{"bye","http://www.google.com"},			%Lis is the list of tuples which is used to connect topics to particular URL
+		{"new","http://localhost:8000"},{		%i.e. if publish to a particular topic then the request is sednt to the corresponding URL.
+		"mqtt-malaria/mosq123-0/data/1/10","http://localhost:8000"}],
 	T = convert(Topic),
 	error_logger:info_msg("topic: ~p",[T]),
 	case find(Lis,T) of
@@ -69,19 +71,22 @@ make_req(URL,Payload,N) ->
 		{_,{Ref,{error,_}}} -> 
 				error_logger:info_msg("Server Error :P "),
 				T = trunc(math:exp(6-N)),
+			%	timer:apply_after(1000*T,mqtt_to_http,make_req,[URL,Payload,N-1]);
 				timer:sleep(1000*T),
 				make_req(URL,Payload,N-1);
-		{_,{Ref,{{_,Status,_},_,_}}} -> 
+		{_,{Ref,{{_,Status,Message},_,_}}} -> 
 				error_logger:info_msg("status = ~p",[Status]),
-				if 
-					(Status >= 200) and (Status < 300) ->
-						error_logger:info_msg("Passes"),
-						ok;
-					true ->	
-						T = trunc(math:exp(6-N)),
-						timer:sleep(1000*T),
-						make_req(URL,Payload,N-1)
-				end;
+				error_logger:info_msg("message = ~p",[Message]),
+				T = trunc(math:exp(6-N)),
+			%	timer:apply_after(1000*T,mqtt_to_http,make_req,[URL,Payload,N-1]);
+				timer:sleep(1000*T),
+				make_req(URL,Payload,N-1);
+		{_,{Ref,_,_}} ->
+				error_logger:info_msg("Streaming Start~n"),
+				ok;
+	%	{_,{Ref,stream_end,_}} ->
+	%			error_logger:info_msg("Streaming Stop~n"),
+	%			ok;
 		_ ->
 				error_logger:info_msg("Passes"),
 				ok
