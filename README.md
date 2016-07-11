@@ -1,4 +1,4 @@
-mqtt_to_http
+MQTT TO HTTP
 =====
 
 Vernemq Plugin to convert Mqtt request to Http request.
